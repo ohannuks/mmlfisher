@@ -2,11 +2,12 @@ from herculens.Coordinates.pixel_grid import PixelGrid
 from herculens.Instrument.psf import PSF
 from herculens.MassModel.mass_model import MassModel
 from herculens.LightModel.light_model import LightModel
+from herculens.Instrument.noise import Noise
 from fim.dictionaryconversions import flatten_dictionary, unflatten_dictionary
 import jax.numpy as jnp
 from copy import deepcopy
 
-def get_image_likelihood_params(lens_model_list=['SIS'], source_light_model_list=['SERSIC_ELLIPSE'], npix=80, pix_scl=0.08, fwhm=0.3):
+def get_image_likelihood_params(kwargs_params_maxP, lens_model_list=['SIS'], source_light_model_list=['SERSIC_ELLIPSE'], npix=80, pix_scl=0.08, fwhm=0.3 ):
     """
     Generates parameters for image likelihood computation in a lensing model.
 
@@ -28,6 +29,11 @@ def get_image_likelihood_params(lens_model_list=['SIS'], source_light_model_list
 
     # PSF:
     psf = PSF(psf_type='GAUSSIAN', fwhm=fwhm, pixel_size=pix_scl)
+    
+    # Noise
+    background_rms_simu = 1e-2
+    exposure_time_simu = 1e3
+    noise_class = Noise(npix, npix, exposure_time=exposure_time_simu)  # we will sample background_rms
 
     # Lens mass
     lens_mass_model_class = MassModel(lens_model_list)
@@ -37,7 +43,6 @@ def get_image_likelihood_params(lens_model_list=['SIS'], source_light_model_list
 
     # Defaults for testing FIXME: To be changed later
     lens_light_model_class = None
-    noise_class = None
 
     # Define image likelihood parameters
     kwargs_numerics = {'supersampling_factor': 5}
@@ -48,17 +53,19 @@ def get_image_likelihood_params(lens_model_list=['SIS'], source_light_model_list
                                     source_model_class=source_model_class,
                                     lens_light_model_class=lens_light_model_class,
                                     kwargs_numerics=kwargs_numerics )
+    kwargs_image_likelihood = dict(kwargs_image_likelihood = kwargs_image_likelihood, kwargs_params_maxP=kwargs_params_maxP)
     return kwargs_image_likelihood
 
 from herculens.LensImage.lens_image import LensImage
-def get_image_likelihood( kwargs_params, lens_model_list ):
-    # lens_image = LensImage(deepcopy(pixel_grid), deepcopy(psf), noise_class=deepcopy(noise),
-    #                      lens_mass_model_class=deepcopy(lens_mass_model_input),
-    #                      source_model_class=deepcopy(source_model_input),
-    #                      lens_light_model_class=deepcopy(lens_light_model_input),
-    #                      kwargs_numerics=kwargs_numerics_fit)
-    lens_image = LensImage(**kwargs_params)
+def get_image_likelihood( kwargs_image_likelihood ):
+    lens_image = LensImage(**kwargs_image_likelihood)
+    lens_image_data = lens_image.image(kwargs_image_likelihood['kwargs_params_maxP'])
     def log_likelihood(phi_im):
         phi_im_unflattened = unflatten_dictionary(phi_im)
         model_image = lens_image.image(phi_im_unflattened)
-        residual = 
+        noise_class = lens_image.Noise
+        background_rms = noise_class._background_rms
+        model_var = noise_class.C_D_model(model_image, background_rms=background_rms)
+        # Compute the log-likelihood
+        log_likelihood = -0.5 * jnp.sum((model_image - lens_image_data) ** 2 / model_var)
+        return log_likelihood

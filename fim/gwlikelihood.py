@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 from fim import solver
 from fim.defaults import cosmo
-from dictionaryconversions import flatten_dictionary, unflatten_dictionary
+from fim.dictionaryconversions import flatten_dictionary, unflatten_dictionary
 from herculens.MassModel.mass_model import MassModel
 
 def get_images( phi_im ):
@@ -25,7 +25,7 @@ def get_fermat_potentials_magnifications(phi_im, lens_model_list):
 
 def get_gw_likelihood_params(kwargs_params, log_sigma_t, log_sigma_d, lens_model_list, fixed_parameters):
     # Get the true time delays and effective luminosity distances (assumed to be noiseless)
-    _, _, fermat_potentials, magnifications = solver.solve_lens_equation( kwargs_params, lens_model_list )
+    _, _, fermat_potentials, magnifications = solver.solve_lens_equation( kwargs_params, lens_model_list, fixed_parameters=fixed_parameters)
     deltat = jnp.diff( fermat_potentials ) # Unnormalised time delays (fermat potentials)
     luminosity_distance = fixed_parameters['luminosity_distance'] # True luminosity distance
     luminosity_distance_eff = luminosity_distance / jnp.sqrt(jnp.abs(magnifications))
@@ -39,9 +39,8 @@ def get_gw_likelihood_params(kwargs_params, log_sigma_t, log_sigma_d, lens_model
     # Return the gravitational-wave likelihood parameters
     return kwargs_gw_likelihood 
 
-def get_gw_likelihood( kwargs_params, lens_model_list ):
+def get_gw_likelihood( kwargs_gw_likelihood, lens_model_list ):
     # Get the gravitational-wave likelihood parameters
-    kwargs_gw_likelihood = kwargs_params['kwargs_gw_likelihood']
     log_delta_t_maxp = kwargs_gw_likelihood['log_delta_t_maxp']
     log_luminosity_distance_eff_maxp = kwargs_gw_likelihood['log_luminosity_distance_eff_maxp']
     log_sigma_t = kwargs_gw_likelihood['log_sigma_t']

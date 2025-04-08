@@ -20,20 +20,20 @@ if __name__ == "__main__":
     # Gravitational-wave model:
     kwargs_gw = [{"src_center_x": 0.01, "src_center_y": 0.01}] # Gravitational-wave parameters
     # Add all inference parameters to a dictionary:
-    kwargs_params = dict(kwargs_lens=kwargs_lens, 
+    kwargs_params_maxP = dict(kwargs_lens=kwargs_lens, 
                          kwargs_source=kwargs_source, 
                          kwargs_light=kwargs_light, 
                          kwargs_gw=kwargs_gw) 
 
     # Image likelihood:
-    kwargs_image_likelihood = get_image_likelihood_params(lens_model_list=['SIS'], source_light_model_list=['SERSIC_ELLIPSE'], npix=80, pix_scl=0.08, fwhm=0.3)
+    kwargs_image_likelihood = get_image_likelihood_params(kwargs_params_maxP, lens_model_list=['SIS'], source_light_model_list=['SERSIC_ELLIPSE'], npix=80, pix_scl=0.08, fwhm=0.3)
     # Gravitational-wave likelihood:
     log_sigma_t, log_sigma_d = 0.05, 0.1 # ~ 5% and 10% errors on time delays and luminosity distances
     fixed_parameters = {'zl': 0.5, 'zs': 2.0, 'luminosity_distance': cosmo.luminosity_distance(2.0).value} # Fixed parameters for the gravitational-wave likelihood (This monstrosity is needed because jax hates derivatives of luminosity distances and because in most cases we assume them to be fixed)
-    kwargs_gw_likelihood = get_gw_likelihood_params(kwargs_params, log_sigma_t, log_sigma_d, lens_model_list, fixed_parameters)
+    kwargs_gw_likelihood = get_gw_likelihood_params(kwargs_params_maxP, log_sigma_t, log_sigma_d, lens_model_list, fixed_parameters)
     # Add all parameters to a dictionary:
     kwargs_likelihood = dict( kwargs_image_likelihood=kwargs_image_likelihood,
                                 kwargs_gw_likelihood=kwargs_gw_likelihood)
     
     # Get covariance matrix:
-    cov_matrix = compute_covariance_matrix( kwargs_params, kwargs_likelihood, log_prior=None, lens_model_list=lens_model_list )
+    cov_matrix = compute_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, log_prior=None, lens_model_list=lens_model_list, fixed_parameters=fixed_parameters )

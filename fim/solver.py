@@ -4,7 +4,7 @@ from lenstronomy.LensModel.lens_model import LensModel
 from fim.defaults import cosmo
 
 
-def solve_lens_equation(kwargs_parameters, lens_model_list):
+def solve_lens_equation(kwargs_parameters, lens_model_list, fixed_parameters):
     """
     Solves the gravitational lens equation to determine image positions, 
     arrival time delays, and magnifications for a given source and lens model.
@@ -25,7 +25,7 @@ def solve_lens_equation(kwargs_parameters, lens_model_list):
     """
     # Get GW parameters
     src_x, src_y = kwargs_parameters['kwargs_gw'][0]['src_center_x'], kwargs_parameters['kwargs_gw'][0]['src_center_y']
-    z_lens, z_source = kwargs_parameters['kwargs_gw'][0]['z_lens'], kwargs_parameters['kwargs_gw'][0]['z_source']
+    z_lens, z_source = fixed_parameters['zl'], fixed_parameters['zs']
     # Specify the lens mass model
     lens_model = LensModel(lens_model_list, z_lens=z_lens, z_source=z_source, cosmo=cosmo)
     # Get the image position from the source position
