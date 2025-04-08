@@ -33,7 +33,7 @@ def get_image_likelihood_params(kwargs_params_maxP, lens_model_list=['SIS'], sou
     # Noise
     background_rms_simu = 1e-2
     exposure_time_simu = 1e3
-    noise_class = Noise(npix, npix, exposure_time=exposure_time_simu)  # we will sample background_rms
+    noise_class = Noise(npix, npix, exposure_time=exposure_time_simu, background_rms=background_rms_simu)  # we will sample background_rms
 
     # Lens mass
     lens_mass_model_class = MassModel(lens_model_list)
@@ -46,8 +46,8 @@ def get_image_likelihood_params(kwargs_params_maxP, lens_model_list=['SIS'], sou
 
     # Define image likelihood parameters
     kwargs_numerics = {'supersampling_factor': 5}
-    kwargs_image_likelihood = dict( pixel_grid=pixel_grid, 
-                                    psf=psf, 
+    kwargs_image_likelihood = dict( grid_class=pixel_grid, 
+                                    psf_class=psf, 
                                     noise_class=noise_class,
                                     lens_mass_model_class=lens_mass_model_class,
                                     source_model_class=source_model_class,
@@ -58,14 +58,21 @@ def get_image_likelihood_params(kwargs_params_maxP, lens_model_list=['SIS'], sou
 
 from herculens.LensImage.lens_image import LensImage
 def get_image_likelihood( kwargs_image_likelihood ):
-    lens_image = LensImage(**kwargs_image_likelihood)
-    lens_image_data = lens_image.image(kwargs_image_likelihood['kwargs_params_maxP'])
+    lens_image = LensImage(**kwargs_image_likelihood['kwargs_image_likelihood'])
+    kwargs_params_maxP = deepcopy(kwargs_image_likelihood['kwargs_params_maxP'])
+    # Rmove kwargss_gw from kwargs_params_maxP
+    del kwargs_params_maxP['kwargs_gw']
+    lens_image_data = lens_image.model(**kwargs_params_maxP)
     def log_likelihood(phi_im):
         phi_im_unflattened = unflatten_dictionary(phi_im)
-        model_image = lens_image.image(phi_im_unflattened)
+        del phi_im_unflattened['kwargs_gw']
+        model_image = lens_image.model(**phi_im_unflattened)
         noise_class = lens_image.Noise
         background_rms = noise_class._background_rms
+        # print(kwargs_image_likelihood['kwargs_image_likelihood']['noise_class']._background_rms)
+        # print("background_rms", background_rms)
         model_var = noise_class.C_D_model(model_image, background_rms=background_rms)
         # Compute the log-likelihood
         log_likelihood = -0.5 * jnp.sum((model_image - lens_image_data) ** 2 / model_var)
         return log_likelihood
+    return log_likelihood

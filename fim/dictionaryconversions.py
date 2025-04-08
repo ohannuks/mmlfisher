@@ -1,4 +1,4 @@
-keywords = ['lens', 'source', 'light', 'gw']
+keywords = ['lens', 'source', 'lens_light', 'gw']
 
 def flatten_dictionary( kwargs_params ):
     """
@@ -26,7 +26,7 @@ def flatten_dictionary( kwargs_params ):
             for i, d in enumerate(kwargs_params[kwarg]):
                 for k, v in d.items():
                     # Create a new key with the format "name_i_k"
-                    new_key = f"{name}_{i}_{k}"
+                    new_key = f"{name}-{i}-{k}"
                     flattened_kwargs_params[new_key] = v
         else:
             # If it's not a list, just rename it
@@ -48,14 +48,15 @@ def unflatten_dictionary( flattened_kwargs_params ):
     unflattened_kwargs_params = {}
     for kwarg in flattened_kwargs_params:
         # Split the key into parts
-        parts = kwarg.split('_')
+        parts = kwarg.split('-')
         name = parts[0]
         if name not in keywords:
             raise ValueError(f"Invalid keyword '{name}'. Allowed keywords are {keywords}.")
         name = "kwargs_" + name
         # Check if the value is a list of dictionaries or a single dictionary
         if len(parts) > 1:
-            # Extract the index and key
+            # Extract the index and 
+            # print(parts)
             index = int(parts[1])
             key = '_'.join(parts[2:])
             # Create the list if it doesn't exist

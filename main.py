@@ -16,13 +16,13 @@ if __name__ == "__main__":
     kwargs_source = [ {'amp': 4.0, 'R_sersic': 0.2, 'n_sersic': 2., 'e1': 0.05, 'e2': 0.05, 'center_x': 0.05, 'center_y': 0.1}] # Source model parameters
     # Lens light model:
     lens_light_model_list = ['SERSIC_ELLIPSE']
-    kwargs_light = [{'amp': 8.0, 'R_sersic': 1.0, 'n_sersic': 3., 'e1': 0.01, 'e2': 0.01, 'center_x': 0., 'center_y': 0.}]
+    kwargs_lens_light = [{'amp': 8.0, 'R_sersic': 1.0, 'n_sersic': 3., 'e1': 0.01, 'e2': 0.01, 'center_x': 0., 'center_y': 0.}]
     # Gravitational-wave model:
     kwargs_gw = [{"src_center_x": 0.01, "src_center_y": 0.01}] # Gravitational-wave parameters
     # Add all inference parameters to a dictionary:
     kwargs_params_maxP = dict(kwargs_lens=kwargs_lens, 
                          kwargs_source=kwargs_source, 
-                         kwargs_light=kwargs_light, 
+                         kwargs_lens_light=kwargs_lens_light, 
                          kwargs_gw=kwargs_gw) 
 
     # Image likelihood:

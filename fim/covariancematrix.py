@@ -15,17 +15,17 @@ def compute_phi_im(phi, fixed_parameters, lens_model_list=['SIS']):
 
     # Replace the source position parameters in the dictionary with the image parameters
     phi_im = phi.copy() # Copy the dictionary
-    del phi_im['gw_0_src_center_x']
-    del phi_im['gw_0_src_center_y']
+    del phi_im['gw-0-src_center_x']
+    del phi_im['gw-0-src_center_y']
     for i in range(n_img):
-        phi_im['gw_0_img_center_x_%d' % i] = x_img[i]
-        phi_im['gw_0_img_center_y_%d' % i] = y_img[i]
+        phi_im['gw-0-img_center_x_%d' % i] = x_img[i]
+        phi_im['gw-0-img_center_y_%d' % i] = y_img[i]
     return phi_im
 
 def get_log_likelihood( kwargs_likelihood, lens_model_list):
     # Get individual likelihoods
     log_likelihood_gw = get_gw_likelihood( kwargs_likelihood['kwargs_gw_likelihood'], lens_model_list )
-    log_likelihood_image = get_image_likelihood( kwargs_likelihood['kwargs_image_likelihood'], lens_model_list )
+    log_likelihood_image = get_image_likelihood( kwargs_likelihood['kwargs_image_likelihood'] )
     # Define the log-likelihood function
     def log_likelihood(phi_im):
         # Compute the gravitational-wave likelihood
