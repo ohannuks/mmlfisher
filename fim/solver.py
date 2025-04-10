@@ -27,11 +27,15 @@ def solve_lens_equation(kwargs_parameters, lens_model_list, fixed_parameters):
     src_x, src_y = kwargs_parameters['kwargs_gw'][0]['src_center_x'], kwargs_parameters['kwargs_gw'][0]['src_center_y']
     z_lens, z_source = fixed_parameters['zl'], fixed_parameters['zs']
     # Specify the lens mass model
-    lens_model = LensModel(lens_model_list, z_lens=z_lens, z_source=z_source, cosmo=cosmo)
+    # lens_model = LensModel(lens_model_list, z_lens=z_lens, z_source=z_source, cosmo=cosmo)
+    lens_model = LensModel(lens_model_list, cosmo=cosmo)
+    print("lens model and arguments", lens_model, lens_model_list, cosmo)
     # Get the image position from the source position
     lens_eq_solver = LensEquationSolver(lens_model)
     x_img, y_img = lens_eq_solver.image_position_from_source(sourcePos_x=src_x, sourcePos_y=src_y, kwargs_lens=kwargs_parameters['kwargs_lens'])
+    print(x_img, y_img)
     # Get the image arrival time delays and magnifications
     fermat_potentials = lens_model.fermat_potential(x_img, y_img, kwargs_lens=kwargs_parameters['kwargs_lens'])
     magnifications = lens_model.magnification(x_img, y_img, kwargs=kwargs_parameters['kwargs_lens'])
+    print("args to magnifications", x_img, y_img, kwargs_parameters['kwargs_lens'])
     return x_img, y_img, fermat_potentials, magnifications

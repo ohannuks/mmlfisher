@@ -29,6 +29,7 @@ def get_log_likelihood( kwargs_likelihood, lens_model_list):
     # Define the log-likelihood function
     def log_likelihood(phi_im):
         # Compute the gravitational-wave likelihood
+        print(log_likelihood_gw(phi_im), log_likelihood_image(phi_im))
         return log_likelihood_gw(phi_im) + log_likelihood_image(phi_im)
     return log_likelihood
 

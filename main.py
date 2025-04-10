@@ -37,3 +37,5 @@ if __name__ == "__main__":
     
     # Get covariance matrix:
     cov_matrix = compute_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, log_prior=None, lens_model_list=lens_model_list, fixed_parameters=fixed_parameters )
+    
+    print(cov_matrix)
