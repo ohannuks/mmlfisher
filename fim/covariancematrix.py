@@ -82,7 +82,7 @@ def compute_inverse_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, fi
     jac_pinv = jnp.linalg.pinv(jac_matrix_form) # Pseudo-inverse of the Jacobian matrix
 
     # Compute the hessian matrix in the new coordinates:
-    hessian_matrix_form_new = jac_pinv.T @ hessian_matrix_form @ jac_pinv
+    hessian_matrix_form_new = -1.*jac_pinv.T @ hessian_matrix_form @ jac_pinv
     # print(jnp.shape(hessian_matrix_form), jnp.shape(jac_matrix_form), jnp.shape(hessian_matrix_form_new), len(list(phi_maxP.keys())), len(list(phi_im_maxP.keys())))
     # exit(1)
 

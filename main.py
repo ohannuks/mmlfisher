@@ -46,7 +46,7 @@ if __name__ == "__main__":
     cov_matrix = jnp.linalg.inv(hessian_matrix_form)
 
     # Sample from the covariance matrix:
-    n_samples = 10000
+    n_samples = 1000
     samples = np.random.multivariate_normal(np.zeros(len(keys)), cov_matrix, n_samples)
     # Add the mean parameters to the samples:
     mean_params = np.zeros(len(keys))
