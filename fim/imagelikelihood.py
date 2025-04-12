@@ -7,13 +7,14 @@ from fim.dictionaryconversions import flatten_dictionary, unflatten_dictionary
 import jax.numpy as jnp
 from copy import deepcopy
 
-def get_image_likelihood_params(kwargs_params_maxP, lens_model_list=['SIS'], source_light_model_list=['SERSIC_ELLIPSE'], npix=80, pix_scl=0.08, fwhm=0.3 ):
+def get_image_likelihood_params(kwargs_params_maxP, lens_model_list=['SIS'], source_light_model_list=['SERSIC_ELLIPSE'], lens_light_model_list=['SERSIC_ELLIPSE'], npix=80, pix_scl=0.08, fwhm=0.3 ):
     """
     Generates parameters for image likelihood computation in a lensing model.
 
     Args:
         lens_model_list (list, optional): List of lens mass models. Defaults to ['SIS'].
         source_light_model_list (list, optional): List of source light models. Defaults to ['SERSIC_ELLIPSE'].
+        lens_light_model_list (list, optional): List of lens light models. Defaults to ['SERSIC_ELLIPSE'].
         npix (int, optional): Number of pixels along one axis of the grid. Defaults to 80.
         pix_scl (float, optional): Pixel scale in angular units. Defaults to 0.08.
         fwhm (float, optional): Full width at half maximum of the PSF. Defaults to 0.3.
@@ -41,8 +42,8 @@ def get_image_likelihood_params(kwargs_params_maxP, lens_model_list=['SIS'], sou
     # Source light
     source_model_class = LightModel(source_light_model_list)
 
-    # Defaults for testing FIXME: To be changed later
-    lens_light_model_class = None
+    # Lens light model
+    lens_light_model_class = LightModel(lens_light_model_list)
 
     # Define image likelihood parameters
     kwargs_numerics = {'supersampling_factor': 5}

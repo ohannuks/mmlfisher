@@ -29,7 +29,7 @@ def get_log_likelihood( kwargs_likelihood, lens_model_list):
     # Define the log-likelihood function
     def log_likelihood(phi_im):
         # Compute the gravitational-wave likelihood
-        print(log_likelihood_gw(phi_im), log_likelihood_image(phi_im))
+        # print(log_likelihood_gw(phi_im), log_likelihood_image(phi_im))
         return log_likelihood_gw(phi_im) + log_likelihood_image(phi_im)
     return log_likelihood
 
@@ -42,5 +42,13 @@ def compute_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, fixed_para
 
     # Create the likelihood function 
     log_likelihood = get_log_likelihood( kwargs_likelihood, lens_model_list=lens_model_list )
+    
+    # Take the hessian with respect to phi_im_maxP:
+    hess_log_likelihood = hessian(log_likelihood)(phi_im_maxP) # Hessian of the log-likelihood function
+    # Print it
+    print("Hessian of the log-likelihood function: ", hess_log_likelihood)
+    # Transform into matrix
+    keys = list(hess_log_likelihood.keys())
+    hessian_matrix_form = jnp.array([[hess_log_likelihood[keys[i]][keys[j]] for j in range(len(keys))] for i in range(len(keys))])
 
-    return log_likelihood( phi_im_maxP ) # Return the log-likelihood function
+    return keys, hess_log_likelihood # Return the log-likelihood function

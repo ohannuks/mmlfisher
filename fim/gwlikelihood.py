@@ -1,9 +1,12 @@
 import jax.numpy as jnp
+# Enable float64 for JAX
+import jax
+jax.config.update("jax_enable_x64", True)
 from fim import solver
 from fim.defaults import cosmo
 from fim.dictionaryconversions import flatten_dictionary, unflatten_dictionary
-# from herculens.MassModel.mass_model import MassModel
-from lenstronomy.LensModel.lens_model import LensModel
+from herculens.MassModel.mass_model import MassModel
+# from lenstronomy.LensModel.lens_model import LensModel
 
 def get_images( phi_im ):
     # Get the number of images from the dictionary
@@ -16,13 +19,14 @@ def get_images( phi_im ):
 def get_fermat_potentials_magnifications(phi_im, lens_model_list):
     # Get the phi_im_parameters
     phi_im_unflattened = unflatten_dictionary(phi_im)
-    lens_mass_model = LensModel(lens_model_list, cosmo=cosmo)
+    lens_mass_model = MassModel(lens_model_list)
     # Get the image position parameters:
     x_img, y_img = get_images(phi_im)
     # print("x_img, y_img", x_img, y_img)
     # Get the image arrival time delays and magnifications
     # print("phi_im_unflattened['kwargs_lens']", phi_im_unflattened['kwargs_lens'], x_img, y_img)
-    fermat_potentials = lens_mass_model.fermat_potential(x_img, y_img, kwargs_lens=phi_im_unflattened['kwargs_lens'])
+    fermat_potentials = lens_mass_model.fermat_potential(jnp.array(x_img,dtype=jnp.float64), jnp.array(y_img, dtype=jnp.float64), kwargs_lens=phi_im_unflattened['kwargs_lens'])
+    # print("x_img, y_img, fermat_potentials", x_img, y_img, fermat_potentials)
     magnifications = lens_mass_model.magnification(x_img, y_img, kwargs=phi_im_unflattened['kwargs_lens'])
     # print("mag", magnifications, fermat_potentials)
     # print("args to magnifications", x_img, y_img, phi_im_unflattened['kwargs_lens'])
@@ -34,7 +38,7 @@ def get_gw_likelihood_params(kwargs_params, log_sigma_t, log_sigma_d, lens_model
     deltat = jnp.diff( fermat_potentials ) # Unnormalised time delays (fermat potentials)
     luminosity_distance = fixed_parameters['luminosity_distance'] # True luminosity distance
     luminosity_distance_eff = luminosity_distance / jnp.sqrt(jnp.abs(magnifications))
-    print("magnifications", magnifications)
+    # print("magnifications", magnifications)
     # Gravitational-wave likelihood:
     kwargs_gw_likelihood = {}
     kwargs_gw_likelihood['log_delta_t_maxp'] = jnp.log(deltat)
@@ -64,7 +68,7 @@ def get_gw_likelihood( kwargs_gw_likelihood, lens_model_list ):
         luminosity_distance_eff = luminosity_distance_maxp / jnp.sqrt(jnp.abs(magnifications)) 
         # print(phi_im)
         # print(len(luminosity_distance_eff), len(log_luminosity_distance_eff_maxp), len(log_sigma_d))
-        print("magnifications", magnifications)
+        # print("magnifications", magnifications)
         # print(jnp.log(deltat), log_delta_t_maxp, 
         #       jnp.log(luminosity_distance_eff), log_luminosity_distance_eff_maxp, 
         #       log_sigma_t, log_sigma_d,
