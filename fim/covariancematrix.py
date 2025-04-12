@@ -54,7 +54,18 @@ def get_log_likelihood( kwargs_likelihood, lens_model_list):
         return log_likelihood_gw(phi_im) + log_likelihood_image(phi_im)
     return log_likelihood
 
+# Assume 100% errors on the priors for now as a default
+def default_log_prior( phi_im, phi_im_maxP ):
+    phi_im_keys = list(phi_im.keys())
+    phi_diff = jnp.array([phi_im[phi_im_keys[i]] - phi_im_maxP[phi_im_keys[i]] for i in range(len(phi_im_keys))])
+    variances = jnp.array([phi_im_maxP[phi_im_keys[i]] for i in range(len(phi_im_keys))])**2+0.1
+    return jnp.sum(phi_diff**2 /(2* variances)) # 100% errors on the priors
+
+
 def compute_inverse_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, fixed_parameters, log_prior=None, lens_model_list=['SIS'] ):
+    if log_prior is not None:
+        raise NotImplementedError("Only default log prior implemented for now")
+    log_prior = default_log_prior
     # This monstrosity is needed because of how herculens/lenstronomy is coded up using dictionaries (instead of arrays), and how JAX hates nested dictionaries
     phi_maxP = flatten_dictionary( kwargs_params_maxP ) # Flattened dictionary (guaranteed to not be a nested dictionary)
     phi_unflattened_maxP = unflatten_dictionary( phi_maxP ) # Same as kwargs_params
@@ -63,9 +74,10 @@ def compute_inverse_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, fi
 
     # Create the likelihood function 
     log_likelihood = get_log_likelihood( kwargs_likelihood, lens_model_list=lens_model_list )
+    log_posterior = lambda phi_im: log_likelihood(phi_im) + default_log_prior(phi_im, phi_im_maxP) # Posterior function
     
     # Take the hessian with respect to phi_im_maxP:
-    hess_log_likelihood = hessian(log_likelihood)(phi_im_maxP) # Hessian of the log-likelihood function
+    hess_log_likelihood = hessian(log_posterior)(phi_im_maxP) # Hessian of the log-likelihood function
     # Print it
     # print("Hessian of the log-likelihood function: ", hess_log_likelihood)
     # Transform into matrix

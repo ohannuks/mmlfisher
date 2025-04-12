@@ -9,16 +9,17 @@ from fim.imagelikelihood import get_image_likelihood_params
 from fim.covariancematrix import compute_inverse_covariance_matrix
 from fim.defaults import cosmo
 
+
 if __name__ == "__main__":
     # Lens mass model:
     lens_model_list = ['SIS']
-    kwargs_lens = [{'theta_E': 1.5, 'center_x': 0., 'center_y': 0.}] # Lens mass model parameters
+    kwargs_lens = [{'theta_E': 1.5, 'center_x': 0.03, 'center_y': 0.02}] # Lens mass model parameters
     # Source light model:
     source_light_model_list = ['SERSIC_ELLIPSE']
     kwargs_source = [ {'amp': 4.0, 'R_sersic': 0.2, 'n_sersic': 2., 'e1': 0.05, 'e2': 0.05, 'center_x': 0.05, 'center_y': 0.1}] # Source model parameters
     # Lens light model:
     lens_light_model_list = ['SERSIC_ELLIPSE']
-    kwargs_lens_light = [{'amp': 8.0, 'R_sersic': 1.0, 'n_sersic': 3., 'e1': 0.01, 'e2': 0.01, 'center_x': 0., 'center_y': 0.}]
+    kwargs_lens_light = [{'amp': 4.0, 'R_sersic': 0.2, 'n_sersic': 2., 'e1': 0.01, 'e2': 0.01, 'center_x': 0.01, 'center_y': 0.05}]
     # Gravitational-wave model:
     kwargs_gw = [{"src_center_x": 0.01, "src_center_y": 0.01}] # Gravitational-wave parameters
     # Add all inference parameters to a dictionary:
@@ -39,23 +40,45 @@ if __name__ == "__main__":
     
     # Get covariance matrix:
     import jax.numpy as jnp
-    keys, hess_log_likelihood = compute_inverse_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, log_prior=None, lens_model_list=lens_model_list, fixed_parameters=fixed_parameters )
-    hessian_matrix_form = jnp.array([[hess_log_likelihood[keys[i]][keys[j]] for j in range(len(keys))] for i in range(len(keys))])
+    keys, inverse_covariance = compute_inverse_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, log_prior=None, lens_model_list=lens_model_list, fixed_parameters=fixed_parameters )
+    inverse_covariance_matrix = jnp.array([[inverse_covariance[keys[i]][keys[j]] for j in range(len(keys))] for i in range(len(keys))])
+    # Plot the inverse covariance matrix:
+    plt.imshow(inverse_covariance_matrix, cmap='hot', interpolation='nearest')
+    plt.colorbar()
+    plt.title('Inverse Covariance Matrix')
+    plt.savefig('inverse_covariance_matrix.pdf', bbox_inches='tight')
+    plt.close()
+
+    # Take the inverse using jnp.linalg.svd and jnp.linalg.inv separately and compare results:
+    cov_matrix = jnp.linalg.inv(inverse_covariance_matrix)
+    U, S, V = jnp.linalg.svd(inverse_covariance_matrix)
+    S_inv = jnp.zeros_like(S)
+    S_inv = S_inv.at[:len(S)].set(1/S)
+    S_inv = jnp.diag(S_inv)
+    cov_matrix2 = jnp.dot(V.T, jnp.dot(S_inv, U.T))
+    # Check if the two matrices are equal:
+    assert jnp.allclose(cov_matrix, cov_matrix2), "The two covariance matrices are not equal!"
+
+    # Check if covariance matrix is positive definite:
+    if jnp.all(jnp.linalg.eigvals(cov_matrix) > 0):
+        print("Covariance matrix is positive definite")
+    else:
+        print("Covariance matrix is not positive definite")
     
-    # Take the covariance matrix:
-    cov_matrix = jnp.linalg.inv(hessian_matrix_form)
+    # # Take the covariance matrix:
+    # cov_matrix = jnp.linalg.inv(inverse_covariance_matrix)
 
     # Sample from the covariance matrix:
-    n_samples = 1000
-    samples = np.random.multivariate_normal(np.zeros(len(keys)), cov_matrix, n_samples)
-    # Add the mean parameters to the samples:
-    mean_params = np.zeros(len(keys))
-    from fim.dictionaryconversions import flatten_dictionary
-    kwargs_params_maxP = flatten_dictionary(kwargs_params_maxP)
-    for i in range(len(keys)):
-        mean_params[i] = kwargs_params_maxP[keys[i]]
-    samples += mean_params
-    # Make a corner plot
-    fig = corner(samples, labels=keys, truths=mean_params)
-    plt.savefig('corner_plot.pdf', bbox_inches='tight')
-    plt.close()
+    # n_samples = 1000
+    # samples = np.random.multivariate_normal(np.zeros(len(keys)), cov_matrix2, n_samples)
+    # # Add the mean parameters to the samples:
+    # mean_params = np.zeros(len(keys))
+    # from fim.dictionaryconversions import flatten_dictionary
+    # kwargs_params_maxP = flatten_dictionary(kwargs_params_maxP)
+    # for i in range(len(keys)):
+    #     mean_params[i] = kwargs_params_maxP[keys[i]]
+    # samples += mean_params
+    # # Make a corner plot
+    # fig = corner(samples, labels=keys, truths=mean_params)
+    # plt.savefig('corner_plot.pdf', bbox_inches='tight')
+    # plt.close()
