@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from corner import corner
 from fim.gwlikelihood import get_gw_likelihood_params
 from fim.imagelikelihood import get_image_likelihood_params
-from fim.covariancematrix import compute_covariance_matrix
+from fim.covariancematrix import compute_inverse_covariance_matrix
 from fim.defaults import cosmo
 
 if __name__ == "__main__":
@@ -39,8 +39,23 @@ if __name__ == "__main__":
     
     # Get covariance matrix:
     import jax.numpy as jnp
-    keys, hess_log_likelihood = compute_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, log_prior=None, lens_model_list=lens_model_list, fixed_parameters=fixed_parameters )
+    keys, hess_log_likelihood = compute_inverse_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, log_prior=None, lens_model_list=lens_model_list, fixed_parameters=fixed_parameters )
     hessian_matrix_form = jnp.array([[hess_log_likelihood[keys[i]][keys[j]] for j in range(len(keys))] for i in range(len(keys))])
     
-    print(hessian_matrix_form)
-    print(keys)
+    # Take the covariance matrix:
+    cov_matrix = jnp.linalg.inv(hessian_matrix_form)
+
+    # Sample from the covariance matrix:
+    n_samples = 10000
+    samples = np.random.multivariate_normal(np.zeros(len(keys)), cov_matrix, n_samples)
+    # Add the mean parameters to the samples:
+    mean_params = np.zeros(len(keys))
+    from fim.dictionaryconversions import flatten_dictionary
+    kwargs_params_maxP = flatten_dictionary(kwargs_params_maxP)
+    for i in range(len(keys)):
+        mean_params[i] = kwargs_params_maxP[keys[i]]
+    samples += mean_params
+    # Make a corner plot
+    fig = corner(samples, labels=keys, truths=mean_params)
+    plt.savefig('corner_plot.pdf', bbox_inches='tight')
+    plt.close()

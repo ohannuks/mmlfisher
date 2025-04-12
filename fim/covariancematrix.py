@@ -22,6 +22,27 @@ def compute_phi_im(phi, fixed_parameters, lens_model_list=['SIS']):
         phi_im['gw-0-img_center_y_%d' % i] = y_img[i]
     return phi_im
 
+from herculens.MassModel.mass_model import MassModel
+from fim.gwlikelihood import get_images
+
+from copy import deepcopy
+def compute_phi( phi_im, fixed_parameters, lens_model_list=['SIS']):
+    # Get the phi_im_parameters
+    phi_im_unflattened = unflatten_dictionary(phi_im)
+    lens_mass_model = MassModel(lens_model_list)
+    # Get the image position parameters:
+    x_img, y_img = get_images(phi_im)
+    n_img = len(x_img)
+    x_src, y_src = lens_mass_model.ray_shooting(x_img, y_img, phi_im_unflattened['kwargs_lens'])
+    # print("x_src, y_src", x_src, y_src)
+    phi = deepcopy(phi_im)
+    phi['gw-0-src_center_x'] = jnp.mean(x_src)
+    phi['gw-0-src_center_y'] = jnp.mean(y_src)
+    for i in range(n_img):
+        del phi['gw-0-img_center_x_%d' % i]
+        del phi['gw-0-img_center_y_%d' % i]
+    return phi
+
 def get_log_likelihood( kwargs_likelihood, lens_model_list):
     # Get individual likelihoods
     log_likelihood_gw = get_gw_likelihood( kwargs_likelihood['kwargs_gw_likelihood'], lens_model_list )
@@ -33,7 +54,7 @@ def get_log_likelihood( kwargs_likelihood, lens_model_list):
         return log_likelihood_gw(phi_im) + log_likelihood_image(phi_im)
     return log_likelihood
 
-def compute_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, fixed_parameters, log_prior=None, lens_model_list=['SIS'] ):
+def compute_inverse_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, fixed_parameters, log_prior=None, lens_model_list=['SIS'] ):
     # This monstrosity is needed because of how herculens/lenstronomy is coded up using dictionaries (instead of arrays), and how JAX hates nested dictionaries
     phi_maxP = flatten_dictionary( kwargs_params_maxP ) # Flattened dictionary (guaranteed to not be a nested dictionary)
     phi_unflattened_maxP = unflatten_dictionary( phi_maxP ) # Same as kwargs_params
@@ -46,9 +67,32 @@ def compute_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, fixed_para
     # Take the hessian with respect to phi_im_maxP:
     hess_log_likelihood = hessian(log_likelihood)(phi_im_maxP) # Hessian of the log-likelihood function
     # Print it
-    print("Hessian of the log-likelihood function: ", hess_log_likelihood)
+    # print("Hessian of the log-likelihood function: ", hess_log_likelihood)
     # Transform into matrix
     keys = list(hess_log_likelihood.keys())
     hessian_matrix_form = jnp.array([[hess_log_likelihood[keys[i]][keys[j]] for j in range(len(keys))] for i in range(len(keys))])
+
+    # Compute dphi/dphi_im Jacobian:
+    phi_func = lambda phi_im: compute_phi(phi_im, fixed_parameters=fixed_parameters, lens_model_list=lens_model_list)
+    jac = jacobian(phi_func)(phi_im_maxP) # Jacobian of the phi function
+    # Convert to a matrix
+    keys1 = list(jac.keys())
+    keys2 = list(jac[keys1[0]].keys())
+    jac_matrix_form = jnp.array([[jac[keys1[i]][keys2[j]] for j in range(len(keys2))] for i in range(len(keys1))])
+    jac_pinv = jnp.linalg.pinv(jac_matrix_form) # Pseudo-inverse of the Jacobian matrix
+
+    # Compute the hessian matrix in the new coordinates:
+    hessian_matrix_form_new = jac_pinv.T @ hessian_matrix_form @ jac_pinv
+    # print(jnp.shape(hessian_matrix_form), jnp.shape(jac_matrix_form), jnp.shape(hessian_matrix_form_new), len(list(phi_maxP.keys())), len(list(phi_im_maxP.keys())))
+    # exit(1)
+
+    # Transform back into a dictionary:
+    hess_log_likelihood = {}
+    keys = list(phi_maxP.keys())
+    for i in range(len(keys)):
+        # print(keys[i])
+        hess_log_likelihood[keys[i]] = {}
+        for j in range(len(keys)):
+            hess_log_likelihood[keys[i]][keys[j]] = hessian_matrix_form_new[i][j]
 
     return keys, hess_log_likelihood # Return the log-likelihood function
