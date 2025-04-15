@@ -42,43 +42,21 @@ if __name__ == "__main__":
     import jax.numpy as jnp
     keys, inverse_covariance = compute_inverse_covariance_matrix( kwargs_params_maxP, kwargs_likelihood, log_prior=None, lens_model_list=lens_model_list, fixed_parameters=fixed_parameters )
     inverse_covariance_matrix = jnp.array([[inverse_covariance[keys[i]][keys[j]] for j in range(len(keys))] for i in range(len(keys))])
-    # Plot the inverse covariance matrix:
-    plt.imshow(inverse_covariance_matrix, cmap='hot', interpolation='nearest')
-    plt.colorbar()
-    plt.title('Inverse Covariance Matrix')
-    plt.savefig('inverse_covariance_matrix.pdf', bbox_inches='tight')
-    plt.close()
-
-    # Take the inverse using jnp.linalg.svd and jnp.linalg.inv separately and compare results:
-    cov_matrix = jnp.linalg.inv(inverse_covariance_matrix)
-    U, S, V = jnp.linalg.svd(inverse_covariance_matrix)
-    S_inv = jnp.zeros_like(S)
-    S_inv = S_inv.at[:len(S)].set(1/S)
-    S_inv = jnp.diag(S_inv)
-    cov_matrix2 = jnp.dot(V.T, jnp.dot(S_inv, U.T))
-    # Check if the two matrices are equal:
-    assert jnp.allclose(cov_matrix, cov_matrix2), "The two covariance matrices are not equal!"
-
-    # Check if covariance matrix is positive definite:
-    if jnp.all(jnp.linalg.eigvals(cov_matrix) > 0):
-        print("Covariance matrix is positive definite")
-    else:
-        print("Covariance matrix is not positive definite")
     
-    # # Take the covariance matrix:
-    # cov_matrix = jnp.linalg.inv(inverse_covariance_matrix)
+    # Take the covariance matrix:
+    cov_matrix = jnp.linalg.inv(inverse_covariance_matrix)
 
     # Sample from the covariance matrix:
-    # n_samples = 1000
-    # samples = np.random.multivariate_normal(np.zeros(len(keys)), cov_matrix2, n_samples)
-    # # Add the mean parameters to the samples:
-    # mean_params = np.zeros(len(keys))
-    # from fim.dictionaryconversions import flatten_dictionary
-    # kwargs_params_maxP = flatten_dictionary(kwargs_params_maxP)
-    # for i in range(len(keys)):
-    #     mean_params[i] = kwargs_params_maxP[keys[i]]
-    # samples += mean_params
-    # # Make a corner plot
-    # fig = corner(samples, labels=keys, truths=mean_params)
-    # plt.savefig('corner_plot.pdf', bbox_inches='tight')
-    # plt.close()
+    n_samples = 500
+    samples = np.random.multivariate_normal(np.zeros(len(keys)), cov_matrix, n_samples)
+    # Add the mean parameters to the samples:
+    mean_params = np.zeros(len(keys))
+    from fim.dictionaryconversions import flatten_dictionary
+    kwargs_params_maxP = flatten_dictionary(kwargs_params_maxP)
+    for i in range(len(keys)):
+        mean_params[i] = kwargs_params_maxP[keys[i]]
+    samples += mean_params
+    # Make a corner plot
+    fig = corner(samples, labels=keys, truths=mean_params)
+    plt.savefig('corner_plot.pdf', bbox_inches='tight')
+    plt.close()
